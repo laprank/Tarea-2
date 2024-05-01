@@ -37,6 +37,8 @@ Map *map_create(int (*is_equal)(void *key1, void *key2)) {
 }
 
 void map_insert(Map *map, void *key, void *value) {
+  if (map_search(map, key) != NULL) return;
+
   MapPair *pair = (MapPair *)malloc(sizeof(MapPair));
   pair->key = key;
   pair->value = value;
@@ -49,30 +51,32 @@ void map_insert(Map *map, void *key, void *value) {
 }
 
 int _is_equal(Map *map, MapPair *pair, void *key) {
-  return (
-      (map->is_equal && map->is_equal(pair->key, key)) ||
-      (!map->lower_than(pair->key, key) && !map->lower_than(key, pair->key)));
+  return ((map->is_equal && map->is_equal(pair->key, key)) ||
+          (map->lower_than && !map->lower_than(pair->key, key) &&
+           !map->lower_than(key, pair->key)));
 }
 
-void *map_remove(Map *map, void *key) {
+MapPair *map_remove(Map *map, void *key) {
   for (MapPair *pair = list_first(map->ls); pair != NULL;
        pair = list_next(map->ls))
     if (_is_equal(map, pair, key)) {
       list_popCurrent(map->ls);
-      return pair->value;
+      return pair;
     }
+  return NULL;
 }
 
-void *map_search(Map *map, void *key) {
+MapPair *map_search(Map *map, void *key) {
   for (MapPair *pair = list_first(map->ls); pair != NULL;
        pair = list_next(map->ls)) {
     if (_is_equal(map, pair, key))
-      return pair->value;
+      return pair;
   }
+  return NULL;
 }
 
-void *map_first(Map *map) { return list_first(map->ls); }
+MapPair *map_first(Map *map) { return list_first(map->ls); }
 
-void *map_next(Map *map) { return list_next(map->ls); }
+MapPair *map_next(Map *map) { return list_next(map->ls); }
 
 void map_clean(Map *map) { list_clean(map->ls); }
