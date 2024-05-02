@@ -76,50 +76,11 @@ int convertir_cadena_a_anio(char *cadena) {
         return -1;
     }
 }
-void cargar_peliculas2(Map *pelis_byid) {
-  // Intenta abrir el archivo CSV que contiene datos de películas
-  FILE *archivo = fopen("data/Top1500.csv", "r");
-  if (archivo == NULL) {
-    perror(
-        "Error al abrir el archivo"); // Informa si el archivo no puede abrirse
-    return;
-  }
-
-  char **campos;
-  // Leer y parsear una línea del archivo CSV. La función devuelve un array de
-  // strings, donde cada elemento representa un campo de la línea CSV procesada.
-  campos = leer_linea_csv(archivo, ','); // Lee los encabezados del CSV
-
-  // Lee cada línea del archivo CSV hasta el final
-  while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
-    // Crea una nueva estructura Film y almacena los datos de cada película
-    Film *peli = (Film *)malloc(sizeof(Film));
-    strcpy(peli->id, campos[1]);        // Asigna ID
-    strcpy(peli->title, campos[5]);     // Asigna título
-    strcpy(peli->director, campos[14]); // Asigna director
-    peli->genres = list_create();       // Inicializa la lista de géneros
-    peli->year =
-        atoi(campos[10]); // Asigna año, convirtiendo de cadena a entero
-    peli-> rating = atof(campos[8]);
-    char *token = strtok(campos[11], ",");
-    while (token != NULL){
-      list_pushBack(peli->genres, strdup(token));
-      token = strtok(NULL, ",");
-    }
-
-
-    while (peli){
-
-    }
-
-  }
-  fclose(archivo); // Cierra el archivo después de leer todas las líneas
-}
 
 /**
  * Carga películas desde un archivo CSV y las almacena en un mapa por ID.
  */
-void cargar_peliculas(Map *pelis_byid) {
+void cargar_peliculas(Map *pelis_byid,Map *pelis_bygenre, Map *pelis_byyear) {
   // Intenta abrir el archivo CSV que contiene datos de películas
   FILE *archivo = fopen("data/Top1500.csv", "r");
   if (archivo == NULL) {
@@ -153,6 +114,34 @@ void cargar_peliculas(Map *pelis_byid) {
 
     // Inserta la película en el mapa usando el ID como clave
     map_insert(pelis_byid, peli->id, peli);
+    peli->genres->current = peli->genres->head;
+    while(peli->genres->current != NULL){
+      if(map_search(pelis_bygenre, peli->genres->current->data) == NULL){
+          List *new_genero = list_create();
+          list_pushBack(new_genero, peli);
+          map_insert(pelis_bygenre, peli->genres->current->data, new_genero);
+      }
+      else{
+        MapPair *genero_existente = map_search(pelis_bygenre, peli->genres->current->data);
+        List *genero_list = genero_existente->value;
+        list_pushBack(genero_list, peli);
+        map_insert(pelis_bygenre, peli->genres->current->data, genero_list);
+      }
+      peli->genres->current = peli->genres->current->next;
+    }
+    peli->genres->current = peli->genres->head;
+    peli->Decada = aproximar_a_decada_abajo(peli->year);
+    if(map_search(pelis_byyear, &(peli->Decada)) == NULL){
+      List *new_decada = list_create();
+      list_pushBack(new_decada, peli);
+      map_insert(pelis_byyear, &(peli->Decada), new_decada);
+    }
+    else{
+      MapPair *decada_existente = map_search(pelis_byyear, &(peli->Decada));
+      List *decada_list = decada_existente->value;
+      list_pushBack(decada_list, peli);
+      map_insert(pelis_byyear, &(peli->Decada), decada_list);
+    }
   }
   fclose(archivo); // Cierra el archivo después de leer todas las líneas
 
@@ -227,7 +216,7 @@ int main() {
 
     switch (opcion) {
     case '1':
-      cargar_peliculas(pelis_byid);
+      cargar_peliculas(pelis_byid, pelis_bygenre, pelis_byyear);
       break;
     case '2':
       buscar_por_id(pelis_byid);
@@ -239,49 +228,7 @@ int main() {
         char genero[100];
         printf("Ingrese el género: ");
         scanf("%s", genero);
-        FILE *archivo = fopen("data/Top1500.csv", "r");
-        if (archivo == NULL) {
-          perror(
-              "Error al abrir el archivo"); // Informa si el archivo no puede abrirse
-        }
 
-        char **campos;
-        // Leer y parsear una línea del archivo CSV. La función devuelve un array de
-        // strings, donde cada elemento representa un campo de la línea CSV procesada.
-        campos = leer_linea_csv(archivo, ','); // Lee los encabezados del CSV
-
-        // Lee cada línea del archivo CSV hasta el final
-        while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
-          // Crea una nueva estructura Film y almacena los datos de cada película
-          Film *peli = (Film *)malloc(sizeof(Film));
-          strcpy(peli->id, campos[1]);        // Asigna ID
-          strcpy(peli->title, campos[5]);     // Asigna título
-          strcpy(peli->director, campos[14]); // Asigna director
-          peli->genres = list_create();       // Inicializa la lista de géneros
-          peli->year =
-              atoi(campos[10]); // Asigna año, convirtiendo de cadena a entero
-          peli-> rating = atof(campos[8]);
-          char *token = strtok(campos[11], ",");
-          while (token != NULL){
-            list_pushBack(peli->genres, strdup(token));
-            token = strtok(NULL, ",");
-          }
-          peli->genres->current = peli->genres->head;
-          while(peli->genres->current != NULL){
-            if(map_search(pelis_bygenre, peli->genres->current->data) == NULL){
-                List *new_genero = list_create();
-                list_pushBack(new_genero, peli);
-                map_insert(pelis_bygenre, peli->genres->current->data, new_genero);
-            }
-            else{
-              MapPair *genero_existente = map_search(pelis_bygenre, peli->genres->current->data);
-              List *genero_list = genero_existente->value;
-              list_pushBack(genero_list, peli);
-            }
-            peli->genres->current = peli->genres->current->next;
-          }
-          peli->genres->current = peli->genres->head;
-        }
         MapPair *genero_pair = map_search(pelis_bygenre, genero);
         if (genero_pair != NULL){
           List *genero_list = genero_pair->value;
@@ -291,12 +238,11 @@ int main() {
             printf("ID: %s, Título: %s, Director: %s, Año: %d\n", peli->id, peli->title, peli->director, peli->year);
             genero_list->current = genero_list->current->next;
           }
-          
+
         }
         else{
           printf("No se encontraron películas con ese género\n");
         }
-        fclose(archivo);
       }
       break;
     case '5':
@@ -306,44 +252,6 @@ int main() {
         printf("Ingrese la década (ej:1980s): ");
         scanf("%s", decada);
         decadanum =convertir_cadena_a_anio(decada);
-        FILE *archivo = fopen("data/Top1500.csv", "r");
-        if (archivo == NULL) {
-          perror(
-              "Error al abrir el archivo"); // Informa si el archivo no puede abrirse
-        }
-
-        char **campos;
-        // Leer y parsear una línea del archivo CSV. La función devuelve un array de
-        // strings, donde cada elemento representa un campo de la línea CSV procesada.
-        campos = leer_linea_csv(archivo, ','); // Lee los encabezados del CSV
-
-        // Lee cada línea del archivo CSV hasta el final
-        while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
-          // Crea una nueva estructura Film y almacena los datos de cada película
-          Film *peli = (Film *)malloc(sizeof(Film));
-          strcpy(peli->id, campos[1]);        // Asigna ID
-          strcpy(peli->title, campos[5]);     // Asigna título
-          strcpy(peli->director, campos[14]); // Asigna director
-          peli->genres = list_create();       // Inicializa la lista de géneros
-          peli->year = atoi(campos[10]); // Asigna año, convirtiendo de cadena a entero
-          peli-> rating = atof(campos[8]);
-          char *token = strtok(campos[11], ",");
-          while (token != NULL){
-            list_pushBack(peli->genres, strdup(token));
-            token = strtok(NULL, ",");
-          }
-          peli->Decada = aproximar_a_decada_abajo(peli->year);
-          if(map_search(pelis_byyear, &(peli->Decada)) == NULL){
-            List *new_decada = list_create();
-            list_pushBack(new_decada, peli);
-            map_insert(pelis_byyear, &(peli->Decada), new_decada);
-          }
-          else{
-            MapPair *decada_existente = map_search(pelis_byyear, &(peli->Decada));
-            List *decada_list = decada_existente->value;
-            list_pushBack(decada_list, peli);
-          }
-        }
         MapPair *decada_pair = map_search(pelis_byyear, &decadanum);
         if (decada_pair != NULL){
           List *decada_list = decada_pair->value;
@@ -359,6 +267,36 @@ int main() {
     case '6':
       break;
     case '7':
+      {
+        char decada2[100];
+        char genero2[100];
+        int numdecada;
+        printf("ingrese la decada de peliculas que desea buscar por genero ej:(1990s): ");
+        scanf("%s", decada2);
+        numdecada = convertir_cadena_a_anio(decada2);
+        MapPair *decada_pair = map_search(pelis_byyear, &numdecada);
+        if (decada_pair != NULL){
+          printf("ingrese el genero: ");
+          scanf("%s", genero2);
+          List *decada_list = decada_pair->value;
+          decada_list->current = decada_list->head;
+          while (decada_list->current != NULL){
+            Film *peli = (Film *)decada_list->current->data;
+            peli->genres->current = peli->genres->head;
+            while (peli->genres->current != NULL){
+              if(strcmp((char *)peli->genres->current->data, genero2) == 0){
+                printf("ID: %s, Título: %s, Director: %s, Año: %d\n", peli->id, peli->title, peli->director, peli->year);
+                break;
+              }
+              peli->genres->current = peli->genres->current->next;
+            }
+            decada_list->current = decada_list->current->next;
+          }
+        }
+        else{
+          printf("No se encontraron películas en esa decada\n");
+        }
+      }
       break;
     default:
       {
