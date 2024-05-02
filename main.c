@@ -12,6 +12,7 @@ typedef struct {
   char director[300];
   float rating;
   int year;
+  int Decada;
 } Film;
 // Menú principal
 void mostrarMenuPrincipal() {
@@ -52,6 +53,28 @@ int is_equal_str(void *key1, void *key2) {
  */
 int is_equal_int(void *key1, void *key2) {
   return *(int *)key1 == *(int *)key2; // Compara valores enteros directamente
+}
+// Función para aproximar un año a la década más cercana siempre hacia abajo
+int aproximar_a_decada_abajo(int year) {
+    return (year / 10) * 10; // Dividir entre 10, truncar y luego multiplicar de nuevo por 10
+}
+int convertir_cadena_a_anio(char *cadena) {
+    // Obtener la longitud de la cadena
+    int longitud = strlen(cadena);
+
+    // Verificar si la cadena tiene al menos tres caracteres y termina con 's'
+    if (longitud >= 3 && cadena[longitud - 1] == 's') {
+        // Crear una subcadena para extraer los dígitos del año
+        char anio[5]; // máximo de 4 dígitos para el año + 1 para el carácter nulo
+        strncpy(anio, cadena, longitud - 1); // Copiar todos los caracteres excepto el último 's'
+        anio[longitud - 1] = '\0'; // Agregar el carácter nulo al final
+
+        // Convertir la subcadena a un entero y devolverlo
+        return atoi(anio);
+    } else {
+        // Si la cadena no tiene el formato esperado, devolver -1 (indicando un error)
+        return -1;
+    }
 }
 void cargar_peliculas2(Map *pelis_byid) {
   // Intenta abrir el archivo CSV que contiene datos de películas
@@ -193,6 +216,7 @@ int main() {
   // comparación que trabaja con claves de tipo string.
   Map *pelis_byid = map_create(is_equal_str);
   Map *pelis_bygenre = map_create(is_equal_str);
+  Map *pelis_byyear = map_create(is_equal_int);
 
   // Recuerda usar un mapa por criterio de búsqueda
 
@@ -276,7 +300,61 @@ int main() {
       }
       break;
     case '5':
-      
+      {
+        char decada[10];
+        int decadanum;
+        printf("Ingrese la década (ej:1980s): ");
+        scanf("%s", decada);
+        decadanum =convertir_cadena_a_anio(decada);
+        FILE *archivo = fopen("data/Top1500.csv", "r");
+        if (archivo == NULL) {
+          perror(
+              "Error al abrir el archivo"); // Informa si el archivo no puede abrirse
+        }
+
+        char **campos;
+        // Leer y parsear una línea del archivo CSV. La función devuelve un array de
+        // strings, donde cada elemento representa un campo de la línea CSV procesada.
+        campos = leer_linea_csv(archivo, ','); // Lee los encabezados del CSV
+
+        // Lee cada línea del archivo CSV hasta el final
+        while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
+          // Crea una nueva estructura Film y almacena los datos de cada película
+          Film *peli = (Film *)malloc(sizeof(Film));
+          strcpy(peli->id, campos[1]);        // Asigna ID
+          strcpy(peli->title, campos[5]);     // Asigna título
+          strcpy(peli->director, campos[14]); // Asigna director
+          peli->genres = list_create();       // Inicializa la lista de géneros
+          peli->year = atoi(campos[10]); // Asigna año, convirtiendo de cadena a entero
+          peli-> rating = atof(campos[8]);
+          char *token = strtok(campos[11], ",");
+          while (token != NULL){
+            list_pushBack(peli->genres, strdup(token));
+            token = strtok(NULL, ",");
+          }
+          peli->Decada = aproximar_a_decada_abajo(peli->year);
+          if(map_search(pelis_byyear, &(peli->Decada)) == NULL){
+            List *new_decada = list_create();
+            list_pushBack(new_decada, peli);
+            map_insert(pelis_byyear, &(peli->Decada), new_decada);
+          }
+          else{
+            MapPair *decada_existente = map_search(pelis_byyear, &(peli->Decada));
+            List *decada_list = decada_existente->value;
+            list_pushBack(decada_list, peli);
+          }
+        }
+        MapPair *decada_pair = map_search(pelis_byyear, &decadanum);
+        if (decada_pair != NULL){
+          List *decada_list = decada_pair->value;
+          decada_list->current = decada_list->head;
+          while (decada_list->current != NULL){
+            Film *peli = (Film *)decada_list->current->data;
+            printf("ID: %s, Título: %s, Director: %s, Año: %d\n", peli->id, peli->title, peli->director, peli->year);
+            decada_list->current = decada_list->current->next;
+          }
+        }
+      }
       break;
     case '6':
       break;
