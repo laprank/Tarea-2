@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 typedef struct {
   char id[100];
@@ -74,6 +75,18 @@ int convertir_cadena_a_anio(char *cadena) {
     } else {
         // Si la cadena no tiene el formato esperado, devolver -1 (indicando un error)
         return -1;
+    }
+}
+//Función para pasar la primera letra de una cadena a mayúscula
+void primera_letra_mayuscula(char *cadena) {
+    int i = 0;
+    while (cadena[i]) {
+        if (i == 0) {
+            cadena[i] = toupper(cadena[i]);
+        } else {
+            cadena[i] = tolower(cadena[i]);
+        }
+        i++;
     }
 }
 
@@ -222,12 +235,14 @@ int main() {
       buscar_por_id(pelis_byid);
       break;
     case '3':
+      printf("estoy solito profesor\n");
       break;
     case '4':
       {
         char genero[100];
         printf("Ingrese el género: ");
         scanf("%s", genero);
+        primera_letra_mayuscula(genero);
 
         MapPair *genero_pair = map_search(pelis_bygenre, genero);
         if (genero_pair != NULL){
@@ -265,6 +280,7 @@ int main() {
       }
       break;
     case '6':
+      printf("estoy solito profesor\n");
       break;
     case '7':
       {
@@ -278,6 +294,7 @@ int main() {
         if (decada_pair != NULL){
           printf("ingrese el genero: ");
           scanf("%s", genero2);
+          primera_letra_mayuscula(genero2);
           List *decada_list = decada_pair->value;
           decada_list->current = decada_list->head;
           while (decada_list->current != NULL){
