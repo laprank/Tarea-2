@@ -71,7 +71,6 @@ Para una configuración y ejecución rápida, sigue estos pasos:
 ## Problemas Conocidos
 
 - La funcionalidad de buscar por director y el rango de calificaciones está en desarrollo.
-- Algunas funcionalidades pueden no ser completamente precisas debido a restricciones de implementación.
 
 ## Áreas de Mejora
 
